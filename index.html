@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Salinity Gradient</title>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://samples.azuremaps.com/samples.min.css" rel="stylesheet" />
+  <link href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" rel="stylesheet" />
+
+  <!-- Your CSS -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Azure Maps SDK (must be loaded before your JS) -->
+  <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+</head>
+
+<body>
+  <h2 id="map-title">Salinity Gradient</h2>
+
+  <div class="controls">
+    <label for="dateSelect"><b>Date:</b></label>
+    <select id="dateSelect"></select>
+
+    <span class="control-spacer"></span>
+
+    <label for="paramSelect"><b>Parameter:</b></label>
+    <select id="paramSelect"></select>
+  </div>
+
+  <div id="map-container">
+    <div id="map"></div>
+
+    <div id="legend">
+      <div class="legend-title" id="legend-title">Salinity</div>
+      <div class="legend-bar"></div>
+      <div class="legend-labels">
+        <span id="legend-min"></span>
+        <span id="legend-max"></span>
+      </div>
+    </div>
+  </div>
+
+  <fieldset id="info">
+    <legend>Simple 2D WebGL layer</legend>
+    This sample showcases the creation of a custom WebGL layer that draws a 2D triangle directly on the map.
+  </fieldset>
+
+  <!-- 3rd-party libs -->
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://unpkg.com/delaunator@5.0.0/delaunator.min.js"></script>
+
+  <!-- App config (set endpoints/keys here) -->
+  <script src="config.js"></script>
+
+  <!-- Your modules (order matters) -->
+  <script src="webglLayer.js"></script>
+  <script src="triangulation.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
