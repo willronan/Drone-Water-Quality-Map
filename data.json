@@ -1,0 +1,23 @@
+[
+  {
+    "latitude": 49.3211,
+    "longitude": -123.1432,
+    "timestamp": "2025-11-14T18:00:00Z",
+    "salinity": 24.1,
+    "temperature": 11.3
+  },
+  {
+    "latitude": 49.3213,
+    "longitude": -123.1430,
+    "timestamp": "2025-11-14T18:01:00Z",
+    "salinity": 24.5,
+    "temperature": 11.4
+  },
+  {
+    "latitude": 49.3215,
+    "longitude": -123.1428,
+    "timestamp": "2025-11-14T18:02:00Z",
+    "salinity": 24.8,
+    "temperature": 11.5
+  }
+]
