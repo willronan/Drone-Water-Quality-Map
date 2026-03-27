@@ -18,5 +18,5 @@ window.APP_CONFIG = {
   MAP_TOKEN_URL: "https://YOUR-FUNCTION-APP.azurewebsites.net/api/GetAzureMapsToken",
 
   // Not recommended for public repos / public sites:
-  // AZURE_MAPS_SUBSCRIPTION_KEY: "YOUR_AZURE_MAPS_KEY"
+  AZURE_MAPS_SUBSCRIPTION_KEY: "99FXwvp3sLhLM5Iw0VrcddGR0mzusEO57dyFRDKYafCpeHMDrxQuJQQJ99CBAC8vTInE4gDzAAAgAZMP48y9"
 };
