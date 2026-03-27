@@ -9,7 +9,7 @@
 window.APP_CONFIG = {
   // 1) Data API: HTTP endpoint that returns JSON rows from your Table Storage.
   // Example: "https://<your-func-app>.azurewebsites.net/api/GetDroneData?days=7"
-  DATA_API_URL: "./data.json",
+  DATA_API_URL: "https://YOUR-FUNCTION-APP.azurewebsites.net/api/GetDroneData",
 
   // 2) Azure Maps authentication:
   // Preferred: Microsoft Entra token brokered by your backend (Azure Function/App Service with Managed Identity).
