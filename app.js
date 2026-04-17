@@ -268,6 +268,13 @@
 
     const anchorLonLat = [rows[0].longitude, rows[0].latitude];
 
+    // Move map to the first GPS point of the selected day.
+    // Zoom ~15 is roughly a couple km view, depending on screen size/latitude.
+    state.map.setCamera({
+      center: anchorLonLat,
+      zoom: 15
+    });
+
     // WebGL anchor in Azure MercatorPoint coords
     const anchorMercator = atlas.data.MercatorPoint.fromPosition(anchorLonLat);
     window.WebGLLayerModule.meshState.anchorMercator = new Float32Array([
