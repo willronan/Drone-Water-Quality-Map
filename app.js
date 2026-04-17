@@ -23,7 +23,6 @@ function loadDate(date, paramName) {
 
   const anchorLonLat = [rows[0].longitude, rows[0].latitude];
 
-
   // Move map to first point of this date
   state.map.setCamera({
     center: anchorLonLat,
