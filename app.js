@@ -268,6 +268,37 @@
 
     const anchorLonLat = [rows[0].longitude, rows[0].latitude];
 
+    // Compute bounding box for all points in this date
+    let minLon = Infinity, maxLon = -Infinity;
+    let minLat = Infinity, maxLat = -Infinity;
+
+    for (const r of rows) {
+      const lon = r.longitude;
+      const lat = r.latitude;
+
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+
+    // Fit to data
+    state.map.setCamera({
+      bounds: [minLon, minLat, maxLon, maxLat],
+      padding: 200
+    });
+
+    // Clamp zoom so we don't zoom in too far (lab data case)
+    const cam = state.map.getCamera();
+    if (cam.zoom > 14) {
+      state.map.setCamera({
+        center: cam.center,
+        zoom: 14
+      });
+    }
+
     // WebGL anchor in Azure MercatorPoint coords
     const anchorMercator = atlas.data.MercatorPoint.fromPosition(anchorLonLat);
     window.WebGLLayerModule.meshState.anchorMercator = new Float32Array([
