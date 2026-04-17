@@ -102,19 +102,15 @@
 
   function computeRange(rows, paramName) {
     let min = Infinity, max = -Infinity;
-
     for (const r of rows) {
       const v = Number(r[paramName]);
       if (!Number.isFinite(v)) continue;
       if (v < min) min = v;
       if (v > max) max = v;
     }
-
     if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: 0, max: 1 };
-
     // avoid zero range
     if (min === max) return { min: min - 1, max: max + 1 };
-
     return { min, max };
   }
 
@@ -126,7 +122,6 @@
       state.map.layers.remove(state.pointLayer);
       state.pointLayer = null;
     }
-
     if (state.pointPopup) state.pointPopup.close();
 
     // Create a new layer referencing a normalized property name: "value"
@@ -140,7 +135,6 @@
         max, 'red'
       ]
     });
-
     state.map.layers.add(state.pointLayer);
 
     // Popup showing the currently-selected parameter
@@ -153,12 +147,10 @@
 
       state.pointPopup.setOptions({
         position: e.position,
-        content: `
-          <div style="padding:6px 8px; font:12px sans-serif;">
-            <b>${state.selectedParam}</b><br/>
-            ${Number.isFinite(v) ? v.toFixed(2) : 'n/a'}
-          </div>
-        `
+        content: `<div style="padding:6px">
+          <b>${state.selectedParam}</b><br/>
+          ${Number.isFinite(v) ? v.toFixed(2) : 'n/a'}
+        </div>`
       });
 
       state.pointPopup.open(state.map);
@@ -174,17 +166,12 @@
       center: [-123.143, 49.321],
       language: 'none',
       antialias: true,
-      authOptions: (function () {
+      authOptions: (function(){
         const cfg = window.APP_CONFIG || {};
-
         // Option A (NOT recommended for public GitHub Pages): shared key in config.js
         if (cfg.AZURE_MAPS_SUBSCRIPTION_KEY) {
-          return {
-            authType: 'subscriptionKey',
-            subscriptionKey: cfg.AZURE_MAPS_SUBSCRIPTION_KEY
-          };
+          return { authType: 'subscriptionKey', subscriptionKey: cfg.AZURE_MAPS_SUBSCRIPTION_KEY };
         }
-
         // Option B (recommended): Microsoft Entra token from your backend.
         // Requires: cfg.AZURE_MAPS_CLIENT_ID and cfg.MAP_TOKEN_URL
         if (cfg.AZURE_MAPS_CLIENT_ID && cfg.MAP_TOKEN_URL) {
@@ -192,14 +179,10 @@
             authType: 'anonymous',
             clientId: cfg.AZURE_MAPS_CLIENT_ID,
             getToken: function (resolve, reject, map) {
-              fetch(cfg.MAP_TOKEN_URL)
-                .then(r => r.text())
-                .then(t => resolve(t))
-                .catch(reject);
+              fetch(cfg.MAP_TOKEN_URL).then(r => r.text()).then(t => resolve(t)).catch(reject);
             }
           };
         }
-
         console.warn('No Azure Maps auth configured. Set AZURE_MAPS_SUBSCRIPTION_KEY or (AZURE_MAPS_CLIENT_ID + MAP_TOKEN_URL) in config.js');
         return { authType: 'subscriptionKey', subscriptionKey: 'MISSING_KEY' };
       })()
@@ -253,6 +236,7 @@
     }
   }
 
+
   function refreshVisualization() {
     if (!state.selectedDate || !state.selectedParam) return;
     loadDate(state.selectedDate, state.selectedParam);
@@ -284,6 +268,13 @@
 
     const anchorLonLat = [rows[0].longitude, rows[0].latitude];
 
+    // Move map to the first GPS point of the selected day.
+    // Zoom ~15 is roughly a couple km view, depending on screen size/latitude.
+    state.map.setCamera({
+      center: anchorLonLat,
+      zoom: 15
+    });
+
     // WebGL anchor in Azure MercatorPoint coords
     const anchorMercator = atlas.data.MercatorPoint.fromPosition(anchorLonLat);
     window.WebGLLayerModule.meshState.anchorMercator = new Float32Array([
@@ -303,7 +294,6 @@
       ingestNextPoint(state.liveRows[state.cursor], paramName);
       state.cursor++;
     }
-
     console.log("Ingestion complete");
   }
 
@@ -316,11 +306,18 @@
     if (!Number.isFinite(v)) return; // skip rows missing this parameter
 
     const pointMercator = atlas.data.MercatorPoint.fromPosition([lon, lat]);
+
     const localMercatorX = pointMercator[0] - window.WebGLLayerModule.meshState.anchorMercator[0];
     const localMercatorY = pointMercator[1] - window.WebGLLayerModule.meshState.anchorMercator[1];
 
     // Always keep for triangulation
-    state.livePoints.push({ lon, lat, localMercatorX, localMercatorY, value: v });
+    state.livePoints.push({
+      lon,
+      lat,
+      localMercatorX,
+      localMercatorY,
+      value: v
+    });
 
     // Display-sampled points
     const [pointMetersX, pointMetersY] = project3857Meters(lon, lat);
