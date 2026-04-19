@@ -1,66 +1,56 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <title>Salinity Gradient</title>
-
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live Water Data Dashboard</title>
 
-  <link href="https://samples.azuremaps.com/samples.min.css" rel="stylesheet" />
-  <link href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" rel="stylesheet" />
-
-  <!-- Your CSS -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Azure Maps SDK (must be loaded before your JS) -->
   <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+  <link
+    rel="stylesheet"
+    href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css"
+    type="text/css"
+  />
 </head>
-
 <body>
-  <h2 id="map-title">Salinity Gradient</h2>
+  <nav class="top-nav">
+    <a href="index.html" class="nav-link active">Live Dashboard</a>
+    <a href="historical.html" class="nav-link">Historical Map</a>
+  </nav>
 
-  <div class="controls">
-    <label for="yearSelect"><b>Year:</b></label>
-    <select id="yearSelect"></select>
+  <main class="dashboard-page">
+    <header class="dashboard-header">
+      <h1>Live Water Data Dashboard</h1>
+      <p id="statusMessage"></p>
+    </header>
 
-    <label for="dateSelect"><b>Date:</b></label>
-    <select id="dateSelect"></select>
-
-    <span class="control-spacer"></span>
-
-    <label for="paramSelect"><b>Parameter:</b></label>
-    <select id="paramSelect"></select>
-  </div>
-
-  <div id="map-container">
-    <div id="map"></div>
-
-    <div id="legend">
-      <div class="legend-title" id="legend-title">Salinity</div>
-      <div class="legend-bar"></div>
-      <div class="legend-labels">
-        <span id="legend-min"></span>
-        <span id="legend-max"></span>
+    <section class="dashboard-cards">
+      <div class="dashboard-card">
+        <h2>Salinity</h2>
+        <div id="salinityValue">--</div>
       </div>
-    </div>
-  </div>
 
-  <fieldset id="info">
-    <legend>Simple 2D WebGL layer</legend>
-    This sample showcases the creation of a custom WebGL layer that draws a 2D triangle directly on the map.
-  </fieldset>
+      <div class="dashboard-card">
+        <h2>Temperature</h2>
+        <div id="temperatureValue">--</div>
+      </div>
 
-  <!-- 3rd-party libs -->
-  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://unpkg.com/delaunator@5.0.0/delaunator.min.js"></script>
+      <div class="dashboard-card">
+        <h2>Latest Timestamp</h2>
+        <div id="timestampValue">--</div>
+      </div>
+    </section>
 
-  <!-- App config (set endpoints/keys here) -->
+    <section class="dashboard-map-section">
+      <h2>Latest Drone Location</h2>
+      <div id="liveMap"></div>
+    </section>
+  </main>
+
   <script src="config.js"></script>
-
-  <!-- Your modules (order matters) -->
-  <script src="webglLayer.js"></script>
-  <script src="triangulation.js"></script>
   <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script src="live.js"></script>
 </body>
 </html>
