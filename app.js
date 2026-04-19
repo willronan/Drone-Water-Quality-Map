@@ -8,7 +8,10 @@
     map: null,
     dateIndex: {},
     dates: [],
+    dateMeta: {},
+    years: [],
     parameters: [],
+    selectedYear: null,
     selectedParam: 'salinity',
     selectedDate: null,
 
@@ -51,6 +54,40 @@
     return true;
   }
 
+  function getDatesForSelectedYear() {
+    if (!state.selectedYear) return state.dates.slice();
+
+    return state.dates.filter(d => {
+      const meta = state.dateMeta[d];
+      return meta && meta.year === state.selectedYear;
+    });
+  }
+
+  function populateYearSelector(years) {
+    const select = document.getElementById('yearSelect');
+    select.innerHTML = '';
+
+    for (const y of years) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      select.appendChild(opt);
+    }
+
+    select.onchange = e => {
+      state.selectedYear = e.target.value;
+
+      const filteredDates = getDatesForSelectedYear();
+      populateDateSelector(filteredDates);
+
+      if (filteredDates.length) {
+        state.selectedDate = filteredDates[filteredDates.length - 1];
+        document.getElementById('dateSelect').value = state.selectedDate;
+        refreshVisualization();
+      }
+    };
+  }
+
   function populateDateSelector(dates) {
     const select = document.getElementById('dateSelect');
     select.innerHTML = '';
@@ -58,14 +95,14 @@
     for (const d of dates) {
       const opt = document.createElement('option');
       opt.value = d;
-      opt.textContent = d;
+      opt.textContent = state.dateMeta[d]?.label || d;
       select.appendChild(opt);
     }
 
-    select.addEventListener('change', e => {
+    select.onchange = e => {
       state.selectedDate = e.target.value;
       refreshVisualization();
-    });
+    };
   }
 
   function populateParamSelector(parameters) {
@@ -79,7 +116,6 @@
       select.appendChild(opt);
     }
 
-    // default
     if (parameters.includes('salinity')) {
       state.selectedParam = 'salinity';
       select.value = 'salinity';
@@ -88,10 +124,10 @@
       select.value = parameters[0];
     }
 
-    select.addEventListener('change', e => {
+    select.onchange = e => {
       state.selectedParam = e.target.value;
       refreshVisualization();
-    });
+    };
   }
 
   function setLegend(title, min, max) {
@@ -109,7 +145,6 @@
       if (v > max) max = v;
     }
     if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: 0, max: 1 };
-    // avoid zero range
     if (min === max) return { min: min - 1, max: max + 1 };
     return { min, max };
   }
@@ -117,14 +152,12 @@
   function recreatePointLayer(min, max) {
     if (!state.map) return;
 
-    // Remove old layer and its event handlers (if any)
     if (state.pointLayer) {
       state.map.layers.remove(state.pointLayer);
       state.pointLayer = null;
     }
     if (state.pointPopup) state.pointPopup.close();
 
-    // Create a new layer referencing a normalized property name: "value"
     state.pointLayer = new atlas.layer.BubbleLayer(state.displayPointSource, 'points', {
       radius: 4,
       strokeColor: 'white',
@@ -137,7 +170,6 @@
     });
     state.map.layers.add(state.pointLayer);
 
-    // Popup showing the currently-selected parameter
     state.pointPopup = new atlas.Popup({ closeButton: false, pixelOffset: [0, -10] });
 
     state.map.events.add('mousemove', state.pointLayer, e => {
@@ -168,12 +200,9 @@
       antialias: true,
       authOptions: (function(){
         const cfg = window.APP_CONFIG || {};
-        // Option A (NOT recommended for public GitHub Pages): shared key in config.js
         if (cfg.AZURE_MAPS_SUBSCRIPTION_KEY) {
           return { authType: 'subscriptionKey', subscriptionKey: cfg.AZURE_MAPS_SUBSCRIPTION_KEY };
         }
-        // Option B (recommended): Microsoft Entra token from your backend.
-        // Requires: cfg.AZURE_MAPS_CLIENT_ID and cfg.MAP_TOKEN_URL
         if (cfg.AZURE_MAPS_CLIENT_ID && cfg.MAP_TOKEN_URL) {
           return {
             authType: 'anonymous',
@@ -192,41 +221,46 @@
   }
 
   function onMapReady() {
-    // WebGL layer
     const layer = new atlas.layer.WebGLLayer('triangles', {
       renderer: window.WebGLLayerModule.renderer
     });
     state.map.layers.add(layer, 'labels');
 
-    // Point source (display sampling)
     state.displayPointSource = new atlas.source.DataSource();
     state.map.sources.add(state.displayPointSource);
 
-    // Load data AFTER map ready
     bootstrapData();
   }
 
   // --- Data bootstrap ---
   async function bootstrapData() {
-    // Configure these in config.js (recommended), or edit defaults below.
     const cfg = window.APP_CONFIG || {};
     const dataApiUrl = cfg.DATA_API_URL || 'https://YOUR-FUNCTION-APP.azurewebsites.net/api/GetDroneData';
 
     try {
       const rawRows = await window.DataModule.loadRowsFromApi(dataApiUrl);
-      const { dateIndex, dates, parameters } = window.DataModule.rowsToDateIndex(rawRows);
+      const { dateIndex, dates, parameters, dateMeta, years } = window.DataModule.rowsToDateIndex(rawRows);
 
       state.dateIndex = dateIndex;
       state.dates = dates;
       state.parameters = parameters;
+      state.dateMeta = dateMeta;
+      state.years = years;
 
-      populateDateSelector(dates);
+      populateYearSelector(years);
       populateParamSelector(parameters);
 
-      // Select first date if available
-      if (dates.length) {
-        state.selectedDate = dates[0];
-        document.getElementById('dateSelect').value = dates[0];
+      if (years.length) {
+        state.selectedYear = years[years.length - 1];
+        document.getElementById('yearSelect').value = state.selectedYear;
+      }
+
+      const filteredDates = getDatesForSelectedYear();
+      populateDateSelector(filteredDates);
+
+      if (filteredDates.length) {
+        state.selectedDate = filteredDates[filteredDates.length - 1];
+        document.getElementById('dateSelect').value = state.selectedDate;
       }
 
       refreshVisualization();
@@ -235,7 +269,6 @@
       alert('Failed to load data. Check DATA_API_URL in config.js and your Azure Function CORS settings.');
     }
   }
-
 
   function refreshVisualization() {
     if (!state.selectedDate || !state.selectedParam) return;
@@ -246,11 +279,9 @@
   function loadDate(date, paramName) {
     console.log('Loading:', { date, paramName });
 
-    // Clear display points
     displaySampling.occupied.clear();
     state.displayPointSource.clear();
 
-    // Reset triangulation + WebGL mesh
     state.livePoints = [];
     state.cursor = 0;
     window.WebGLLayerModule.clearMesh();
@@ -258,17 +289,14 @@
     const rows = state.dateIndex[date];
     if (!rows || rows.length < 3) return;
 
-    // Compute range for selected parameter
     const { min, max } = computeRange(rows, paramName);
     window.WebGLLayerModule.setValueRange(min, max);
     setLegend(paramName, min, max);
 
-    // Recreate the point layer with the new range for the color ramp
     recreatePointLayer(min, max);
 
     const anchorLonLat = [rows[0].longitude, rows[0].latitude];
 
-    // Compute bounding box for all points in this date
     let minLon = Infinity, maxLon = -Infinity;
     let minLat = Infinity, maxLat = -Infinity;
 
@@ -284,13 +312,11 @@
       if (lat > maxLat) maxLat = lat;
     }
 
-    // Fit to data
     state.map.setCamera({
       bounds: [minLon, minLat, maxLon, maxLat],
       padding: 200
     });
 
-    // Clamp zoom so we don't zoom in too far (lab data case)
     const cam = state.map.getCamera();
     if (cam.zoom > 14) {
       state.map.setCamera({
@@ -299,20 +325,17 @@
       });
     }
 
-    // WebGL anchor in Azure MercatorPoint coords
     const anchorMercator = atlas.data.MercatorPoint.fromPosition(anchorLonLat);
     window.WebGLLayerModule.meshState.anchorMercator = new Float32Array([
       anchorMercator[0],
       anchorMercator[1]
     ]);
 
-    // Sampling anchor in 3857 meters
     displaySampling.anchorMeters3857 = project3857Meters(anchorLonLat[0], anchorLonLat[1]);
 
-    // Title
-    document.getElementById('map-title').textContent = `${paramName} Gradient – ${date}`;
+    const label = state.dateMeta[date]?.label || date;
+    document.getElementById('map-title').textContent = `${paramName} Gradient – ${label}`;
 
-    // Ingest all rows immediately
     state.liveRows = rows;
     while (state.cursor < state.liveRows.length) {
       ingestNextPoint(state.liveRows[state.cursor], paramName);
@@ -327,14 +350,13 @@
     const v = Number(row[paramName]);
 
     if (lat === 0 && lon === 0) return;
-    if (!Number.isFinite(v)) return; // skip rows missing this parameter
+    if (!Number.isFinite(v)) return;
 
     const pointMercator = atlas.data.MercatorPoint.fromPosition([lon, lat]);
 
     const localMercatorX = pointMercator[0] - window.WebGLLayerModule.meshState.anchorMercator[0];
     const localMercatorY = pointMercator[1] - window.WebGLLayerModule.meshState.anchorMercator[1];
 
-    // Always keep for triangulation
     state.livePoints.push({
       lon,
       lat,
@@ -343,7 +365,6 @@
       value: v
     });
 
-    // Display-sampled points
     const [pointMetersX, pointMetersY] = project3857Meters(lon, lat);
     const deltaMetersX = pointMetersX - displaySampling.anchorMeters3857[0];
     const deltaMetersY = pointMetersY - displaySampling.anchorMeters3857[1];
@@ -364,6 +385,5 @@
     window.WebGLLayerModule.uploadMesh();
   }
 
-  // Start app
   initMap();
 })();
