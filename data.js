@@ -51,7 +51,9 @@
           longitude: lon,
           timestamp,
           dateKey,
-          dateLabel
+          dateLabel,
+          deviceType: r.deviceType ?? 'N/A',
+          deviceId: r.deviceId ?? 'N/A'
         };
 
         for (const p of PARAMETERS) {
