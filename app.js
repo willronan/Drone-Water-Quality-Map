@@ -174,14 +174,19 @@
 
     state.map.events.add('mousemove', state.pointLayer, e => {
       if (!e.shapes || !e.shapes.length) return;
+
       const props = e.shapes[0].getProperties();
       const v = Number(props.value);
+      const salinity = Number(props.salinity);
+      const temperature = Number(props.temperature);
+      const deviceType = props.deviceType || 'N/A';
 
       state.pointPopup.setOptions({
         position: e.position,
-        content: `<div style="padding:6px">
-          <b>${state.selectedParam}</b><br/>
-          ${Number.isFinite(v) ? v.toFixed(2) : 'n/a'}
+        content: `<div style="padding:8px; min-width: 120px;">
+          <div><b>${state.selectedParam}</b></div>
+          <div>${Number.isFinite(v) ? v.toFixed(2) : 'n/a'}</div>
+          <div style="margin-top:6px;"><b>Device:</b> ${deviceType}</div>
         </div>`
       });
 
@@ -372,7 +377,12 @@
     if (shouldDisplayPoint(deltaMetersX, deltaMetersY)) {
       state.displayPointSource.add(new atlas.data.Feature(
         new atlas.data.Point([lon, lat]),
-        { value: v }
+        {
+          value: v,
+          salinity: row.salinity,
+          temperature: row.temperature,
+          deviceType: row.deviceType || 'N/A'
+        }
       ));
     }
 
