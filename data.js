@@ -3,7 +3,7 @@
 ============================================================ */
 
 (function () {
-  const PARAMETERS = ['salinity', 'temperature'];
+  const PARAMETERS = ['salinity', 'temperature', 'depth'];
 
   function toIsoDateOnly(ts) {
     const d = (ts instanceof Date) ? ts : new Date(ts);
@@ -46,6 +46,9 @@
           r.DateLabel ??
           dateKey;
 
+        const depthVal = Number(r.depth);
+        const depthConfVal = Number(r.depthConfidence);
+
         const out = {
           latitude: lat,
           longitude: lon,
@@ -53,10 +56,14 @@
           dateKey,
           dateLabel,
           deviceType: r.deviceType ?? 'N/A',
-          deviceId: r.deviceId ?? 'N/A'
+          deviceId: r.deviceId ?? 'N/A',
+          depth: (Number.isFinite(depthVal) && depthVal > 0) ? depthVal : NaN,
+          depthConfidence: (Number.isFinite(depthConfVal) && depthVal > 0) ? depthConfVal : NaN
         };
 
         for (const p of PARAMETERS) {
+          if (p === 'depth') continue; // already handled above
+
           const n = Number(r[p]);
           out[p] = Number.isFinite(n) ? n : NaN;
         }
@@ -96,11 +103,15 @@
         .map(d => dateMeta[d]?.year)
         .filter(Boolean)
     )].sort();
+    
+    let parameterList = PARAMETERS.filter(p =>
+      rows.some(r => Number.isFinite(r[p]))
+    );
 
     return {
       dateIndex,
       dates,
-      parameters: PARAMETERS.slice(),
+      parameters: parameterList,
       dateMeta,
       years
     };
