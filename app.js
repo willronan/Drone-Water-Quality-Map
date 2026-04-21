@@ -177,24 +177,26 @@
 
       const props = e.shapes[0].getProperties();
       const v = Number(props.value);
-      const salinity = Number(props.salinity);
-      const temperature = Number(props.temperature);
       const deviceType = props.deviceType || 'N/A';
+      const depth = Number(props.depth);
+      const depthConfidence = Number(props.depthConfidence);
 
       state.pointPopup.setOptions({
         position: e.position,
-        content: `<div style="padding:8px; min-width: 120px;">
+        content: `<div style="padding:8px; min-width: 140px;">
           <div><b>${state.selectedParam}</b></div>
           <div>${Number.isFinite(v) ? v.toFixed(2) : 'n/a'}</div>
           <div style="margin-top:6px;"><b>Device:</b> ${deviceType}</div>
+          <div><b>Depth:</b> ${Number.isFinite(depth) ? depth.toFixed(2) : 'N/A'}</div>
+          <div><b>Confidence:</b> ${Number.isFinite(depthConfidence) ? depthConfidence.toFixed(2) : 'n/a'}</div>
         </div>`
       });
 
-      state.pointPopup.open(state.map);
-    });
+    state.pointPopup.open(state.map);
+  });
 
-    state.map.events.add('mouseleave', state.pointLayer, () => state.pointPopup.close());
-  }
+      state.map.events.add('mouseleave', state.pointLayer, () => state.pointPopup.close());
+    }
 
   // --- Map setup ---
   function initMap() {
@@ -352,7 +354,10 @@
   function ingestNextPoint(row, paramName) {
     const lat = row.latitude;
     const lon = row.longitude;
-    const v = Number(row[paramName]);
+    let v = Number(row[paramName]);
+    if (paramName === 'depth' && !Number.isFinite(v)) {
+      return; // do not plot depth if it was not captured
+    }
 
     if (lat === 0 && lon === 0) return;
     if (!Number.isFinite(v)) return;
@@ -374,17 +379,17 @@
     const deltaMetersX = pointMetersX - displaySampling.anchorMeters3857[0];
     const deltaMetersY = pointMetersY - displaySampling.anchorMeters3857[1];
 
-    if (shouldDisplayPoint(deltaMetersX, deltaMetersY)) {
-      state.displayPointSource.add(new atlas.data.Feature(
-        new atlas.data.Point([lon, lat]),
-        {
-          value: v,
-          salinity: row.salinity,
-          temperature: row.temperature,
-          deviceType: row.deviceType || 'N/A'
-        }
-      ));
-    }
+    state.displayPointSource.add(new atlas.data.Feature(
+      new atlas.data.Point([lon, lat]),
+      {
+        value: v,
+        salinity: row.salinity,
+        temperature: row.temperature,
+        depth: row.depth,
+        depthConfidence: row.depthConfidence,
+        deviceType: row.deviceType || 'N/A'
+      }
+    ));
 
     if (state.livePoints.length < 3) return;
 
