@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live Water Data Dashboard</title>
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+  <link
+    rel="stylesheet"
+    href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css"
+    type="text/css"
+  />
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="index.html" class="nav-link active">Live Dashboard</a>
+    <a href="historical.html" class="nav-link">Historical Map</a>
+  </nav>
+
+  <main class="dashboard-page">
+    <header class="dashboard-header">
+      <h1>Live Water Data Dashboard</h1>
+      <p id="statusMessage"></p>
+    </header>
+
+    <section class="dashboard-cards">
+      <div class="dashboard-card">
+        <h2>Salinity</h2>
+        <div id="salinityValue">--</div>
+      </div>
+
+      <div class="dashboard-card">
+        <h2>Temperature</h2>
+        <div id="temperatureValue">--</div>
+      </div>
+
+      <div class="dashboard-card">
+        <h2>Depth</h2>
+        <div id="depthValue">--</div>
+        <div id="depthConfidenceValue" style="margin-top:6px; font-size:16px; color:#666;">
+          Confidence: --
+        </div>
+      </div>
+      
+      <div class="dashboard-card">
+        <h2>Device Type</h2>
+        <div id="deviceTypeValue">--</div>
+      </div>
+
+      <div class="dashboard-card">
+        <h2>Latest Timestamp</h2>
+        <div id="timestampValue">--</div>
+      </div>
+    </section>
+
+
+    <section class="dashboard-map-section">
+      <h2>Latest Drone Location</h2>
+      <div id="liveMap"></div>
+    </section>
+
+    <section class="dashboard-depth-section">
+      <div class="depth-chart-header">
+        <h2>Live Depth During Water Landing</h2>
+        <p id="depthChartStatus">Waiting for water data.</p>
+      </div>
+      <canvas id="depthChart" width="900" height="260"></canvas>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="data.js"></script>
+  <script src="live.js"></script>
+</body>
+</html>
