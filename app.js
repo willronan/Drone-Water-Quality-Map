@@ -279,7 +279,7 @@
       }
 
       refreshVisualization();
-      setInterval(pollNewData, 3000);
+      setInterval(pollNewData, 1500);
     } catch (err) {
       console.error(err);
       alert('Failed to load data. Check DATA_API_URL in config.js and your Azure Function CORS settings.');

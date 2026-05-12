@@ -9,22 +9,21 @@
   const depthChartCanvas = document.getElementById("depthChart");
   const depthChartStatusEl = document.getElementById("depthChartStatus");
 
-  // Holds back the latest N water points so false "water" points during exit
-  // do not get plotted if the drone switches to air shortly after.
   const DEPTH_PLOT_LAG_POINTS = 5;
+  const NEW_LANDING_GAP_MS = 10000;
+  const POLL_INTERVAL_MS = 1000;
+
   let pendingDepthPoints = [];
+  let depthSeries = [];
+  let previousDeviceType = "air";
+  let lastSeenTimestamp = null;
+  let lastWaterPointTimeMs = null;
+  let liveCursorTimestamp = null;
 
   let liveMap = null;
   let liveMarker = null;
   let liveMapReady = false;
   let hasCenteredOnFirstFix = false;
-
-  let previousDeviceType = "air";
-  let lastSeenTimestamp = null;
-  let lastWaterPointTimeMs = null;
-  let depthSeries = [];
-
-  const NEW_LANDING_GAP_MS = 10000;
 
   function getLocalDateKey() {
     const now = new Date();
@@ -36,6 +35,10 @@
 
   function normalizeDeviceType(value) {
     return String(value || "").trim().toLowerCase();
+  }
+
+  function getTimestamp(row) {
+    return row.timestamp || row.Timestamp || null;
   }
 
   function getTimestampMs(timestamp) {
@@ -234,13 +237,18 @@
     depthSeries.forEach((point, index) => {
       const x = xFor(point);
       const y = yFor(point.depth);
-      if (index === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
     });
 
     ctx.stroke();
 
     const last = depthSeries[depthSeries.length - 1];
+
     ctx.fillStyle = "#2563eb";
     ctx.beginPath();
     ctx.arc(xFor(last), yFor(last.depth), 4, 0, Math.PI * 2);
@@ -248,8 +256,8 @@
   }
 
   function updateDepthPlot(latest) {
-    const deviceType = normalizeDeviceType(latest.deviceType);
-    const timestamp = latest.timestamp || latest.Timestamp || String(Date.now());
+    const deviceType = normalizeDeviceType(latest.deviceType || latest.waterState);
+    const timestamp = getTimestamp(latest) || String(Date.now());
     const depth = Number(latest.depth);
     const nowMs = getTimestampMs(timestamp);
 
@@ -324,67 +332,103 @@
     }
 
     const today = getLocalDateKey();
+    const latestTimestamp = getTimestamp(latest);
+
     const latestDate =
       latest.dateKey ||
       latest.DateOnly ||
       latest.Date ||
-      (latest.timestamp ? latest.timestamp.slice(0, 10) : null);
+      (latestTimestamp ? latestTimestamp.slice(0, 10) : null);
 
     const isToday = latestDate === today;
 
-    if (isToday) {
-      salinityEl.textContent =
-        Number.isFinite(Number(latest.salinity)) ? Number(latest.salinity).toFixed(2) : "--";
-
-      tempEl.textContent =
-        Number.isFinite(Number(latest.temperature)) ? Number(latest.temperature).toFixed(2) : "--";
-
-      depthEl.textContent =
-        Number.isFinite(Number(latest.depth)) && Number(latest.depth) > 0
-          ? Number(latest.depth).toFixed(2)
-          : "--";
-
-      depthConfidenceEl.textContent =
-        `Confidence: ${
-          Number.isFinite(Number(latest.depthConfidence)) && Number(latest.depthConfidence) > 0
-            ? Number(latest.depthConfidence).toFixed(2)
-            : "--"
-        }`;
-
-      timeEl.textContent = latest.timestamp || latest.Timestamp || "--";
-      deviceTypeEl.textContent = latest.deviceType || "N/A";
-      statusEl.textContent = "";
-
-      updateLiveMap(latest);
-      updateDepthPlot(latest);
-    } else {
+    if (!isToday) {
       clearDashboard();
-      statusEl.textContent = `No data has been collected since ${latestDate}`;
+      statusEl.textContent = latestDate
+        ? `No data has been collected since ${latestDate}`
+        : "No valid timestamp found in latest data.";
       drawDepthPlot();
+      return;
     }
+
+    salinityEl.textContent =
+      Number.isFinite(Number(latest.salinity)) ? Number(latest.salinity).toFixed(2) : "--";
+
+    tempEl.textContent =
+      Number.isFinite(Number(latest.temperature)) ? Number(latest.temperature).toFixed(2) : "--";
+
+    depthEl.textContent =
+      Number.isFinite(Number(latest.depth)) && Number(latest.depth) > 0
+        ? Number(latest.depth).toFixed(2)
+        : "--";
+
+    depthConfidenceEl.textContent =
+      `Confidence: ${
+        Number.isFinite(Number(latest.depthConfidence)) && Number(latest.depthConfidence) > 0
+          ? Number(latest.depthConfidence).toFixed(2)
+          : "--"
+      }`;
+
+    timeEl.textContent = latestTimestamp || "--";
+    deviceTypeEl.textContent = latest.deviceType || latest.waterState || "N/A";
+    statusEl.textContent = "";
+
+    updateLiveMap(latest);
+    updateDepthPlot(latest);
+  }
+
+  async function fetchJson(url) {
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} from ${url}`);
+    }
+
+    return await res.json();
   }
 
   async function loadLatest() {
     const baseUrl = window.APP_CONFIG.DATA_API_URL;
-    const latestUrl = baseUrl.replace("GetDroneData", "GetLatestDroneData");
+    const sinceUrl = baseUrl.replace("GetDroneData", "GetDroneDataSince");
 
-    const res = await fetch(latestUrl, { cache: "no-store" });
-    const rows = await res.json();
+    let rows = [];
 
-    if (!rows || rows.length === 0) {
-      renderLatest(null);
+    if (liveCursorTimestamp) {
+      rows = await fetchJson(`${sinceUrl}?since=${encodeURIComponent(liveCursorTimestamp)}`);
+    } else {
+      rows = await fetchJson(baseUrl);
+    }
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      if (!liveCursorTimestamp) {
+        renderLatest(null);
+      }
       return;
     }
 
-    renderLatest(rows[0]);
+    rows.sort((a, b) => {
+      const ta = new Date(getTimestamp(a) || 0).getTime();
+      const tb = new Date(getTimestamp(b) || 0).getTime();
+      return ta - tb;
+    });
+
+    for (const row of rows) {
+      renderLatest(row);
+
+      const ts = getTimestamp(row);
+      if (ts) {
+        liveCursorTimestamp = ts;
+      }
+    }
   }
 
   try {
     initLiveMap();
     drawDepthPlot();
     window.addEventListener("resize", drawDepthPlot);
+
     await loadLatest();
-    setInterval(loadLatest, 3000);
+    setInterval(loadLatest, POLL_INTERVAL_MS);
   } catch (err) {
     console.error("Live dashboard error:", err);
     statusEl.textContent = `Error loading data: ${err.message}`;
